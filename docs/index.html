@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>나혼자 클라이밍</title>
+
+<!-- ===================================================================
+  키 설정: 아래 두 곳에 발급받은 키를 넣어주세요.
+  1) KAKAO_JS_KEY - Kakao Developers > 내 애플리케이션 > 앱 키 > JavaScript 키
+  2) FIREBASE_CONFIG - Firebase Console > 프로젝트 설정 > 내 앱 > firebaseConfig
+=================================================================== -->
+<script>
+  const KAKAO_JS_KEY = "2cca6a4b9f71d0ce8774a305d190212c";
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCv8n21NKLQkXlMuQ7IsbzWTA734nBLxOw",
+    authDomain: "honeclimber-map.firebaseapp.com",
+    projectId: "honeclimber-map",
+    storageBucket: "honeclimber-map.firebasestorage.app",
+    messagingSenderId: "257488589548",
+    appId: "1:257488589548:web:f3e906be224b9ef2394bc9",
+    measurementId: "G-VMYZKY6BE0"
+  };
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  // 카카오맵 SDK는 키를 URL 쿼리로 넘겨야 해서 동적으로 로드합니다.
+  document.write('<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + KAKAO_JS_KEY + '&autoload=false&libraries=services"><\/script>');
+</script>
+
+<!-- Pretendard 실제 로드: CSS의 font-family 이름만으론 안드로이드에 폰트가 없어서
+     한글/숫자 굵기가 서로 다른 폰트로 렌더링되는 문제가 있어 명시적으로 불러온다 -->
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+
+<style>
+  :root{
+    --bg:#F2F4F6;
+    --bg-elev:#FFFFFF;
+    --card:#FFFFFF;
+    --field:#F2F4F6;
+    --border:#EEF0F2;
+    --text:#191F28;
+    --text-dim:#8B95A1;
+    --text-faint:#B0B8C1;
+    --accent:#3182F6;
+    --accent-dim:#EAF2FF;
+    --teal:#01C99C;
+    --teal-dim:#E3FBF4;
+    --danger:#F04452;
+    --danger-dim:#FEECEE;
+    --radius:20px;
+    --shadow:0 2px 12px rgba(25,31,40,.06);
+    --shadow-lg:0 8px 28px rgba(25,31,40,.10);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%; margin:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Pretendard Variable","Pretendard","Apple SD Gothic Neo",sans-serif;
+    background:var(--bg); color:var(--text);
+    overscroll-behavior:none;
+    position:fixed; inset:0; width:100%;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;}
+  input,textarea,select{font-family:inherit;}
+
+  #app{position:fixed; inset:0; display:flex; flex-direction:column;}
+
+  /* ---------- Onboarding ---------- */
+  #onboarding{
+    position:fixed; inset:0; z-index:200; background:var(--card);
+    display:flex; flex-direction:column; justify-content:center;
+    padding:32px 24px calc(32px + env(safe-area-inset-bottom));
+  }
+  #onboarding.hidden{display:none;}
+
+  /* ---------- Splash (초기 로딩 중, 깜빡임 방지) ---------- */
+  #splash{
+    position:fixed; inset:0; z-index:300; background:var(--card);
+    display:flex; align-items:center; justify-content:center;
+  }
+  #splash.hidden{display:none;}
+  #splash .splash-logo{width:68px; height:68px; border-radius:17px; box-shadow:0 10px 24px rgba(49,130,246,.35); animation:splashPulse 1.1s ease-in-out infinite; overflow:hidden;}
+  #splash .splash-logo img{display:block; width:100%; height:100%; object-fit:cover;}
+  @keyframes splashPulse{0%,100%{opacity:1} 50%{opacity:.55}}
+  .ob-logo{width:68px; height:68px; margin-bottom:16px; border-radius:17px; box-shadow:0 10px 24px rgba(49,130,246,.35); overflow:hidden;}
+  .ob-logo img{display:block; width:100%; height:100%; object-fit:cover;}
+  .ob-title{font-size:26px; font-weight:800; margin:0 0 8px; letter-spacing:-.4px;}
+  .ob-sub{color:var(--text-dim); font-size:15px; margin:0 0 32px; line-height:1.55;}
+  .ob-sub-accent{color:var(--teal); font-weight:700;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:13px; color:var(--text-dim); font-weight:600; margin-bottom:7px;}
+  .field input, .field textarea{
+    width:100%; background:var(--field); border:1.5px solid transparent; color:var(--text);
+    border-radius:14px; padding:14px 15px; font-size:16px; outline:none; transition:border-color .12s;
+  }
+  .field input::placeholder, .field textarea::placeholder{color:var(--text-faint);}
+  .field input:focus, .field textarea:focus{border-color:var(--accent); background:#fff; box-shadow:0 0 0 3px var(--accent-dim);}
+  .field textarea{resize:none; min-height:64px;}
+  .btn-primary{
+    width:100%; background:var(--accent); color:#fff; border:none; border-radius:16px;
+    padding:16px; font-size:16px; font-weight:700; cursor:pointer; margin-top:8px;
+    transition:opacity .12s, transform .12s;
+  }
+  .btn-primary:active{transform:scale(.98);}
+  .btn-primary:disabled{background:var(--field); color:var(--text-faint); opacity:1;}
+  .btn-secondary{
+    width:100%; background:var(--field); color:var(--text); border:none; border-radius:16px;
+    padding:15px; font-size:15px; font-weight:700; cursor:pointer;
+  }
+  .btn-ghost{background:none; border:none; color:var(--text-dim); font-size:14px; cursor:pointer;}
+
+  /* ---------- Map tab ---------- */
+  #map-tab{position:absolute; inset:0 0 60px 0; display:none;}
+  #map-tab.active{display:block;}
+  #map{width:100%; height:100%;}
+
+  #top-stack{
+    position:absolute; top:calc(12px + env(safe-area-inset-top)); left:12px; right:12px; z-index:20;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  #status-banner{
+    width:100%;
+    background:rgba(255,255,255,.96); backdrop-filter:blur(10px);
+    border:none; box-shadow:var(--shadow-lg); border-radius:16px; padding:13px 14px;
+    display:none; align-items:center; gap:10px;
+  }
+  #status-banner.show{display:flex;}
+  #status-banner .dot{width:9px; height:9px; border-radius:50%; background:var(--teal); flex-shrink:0; box-shadow:0 0 0 4px var(--teal-dim);}
+  #status-banner .info{flex:1; min-width:0;}
+  #status-banner .info b{font-size:14px; font-weight:700; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #status-banner .info span{font-size:12px; color:var(--text-dim);}
+  #status-banner button{
+    background:var(--danger-dim); border:none; color:var(--danger);
+    border-radius:10px; padding:8px 12px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;
+  }
+
+  .activity-chip{
+    flex-shrink:0; display:flex; align-items:center; justify-content:center; gap:6px;
+    background:rgba(255,255,255,.96); backdrop-filter:blur(10px); box-shadow:var(--shadow-lg);
+    border:none; border-radius:20px; padding:9px 16px; font-size:13px; font-weight:600; line-height:1; color:var(--text-dim);
+    white-space:nowrap; cursor:pointer; transition:transform .1s;
+  }
+  .activity-chip:active{transform:scale(.97);}
+  .activity-chip-icon{display:flex; align-items:center; justify-content:center;}
+  .activity-chip-icon svg{width:15px; height:15px;}
+  .activity-chip.active{color:var(--accent);}
+  .count-badge{color:var(--text-dim); font-weight:600; font-size:13px; flex-shrink:0; white-space:nowrap;}
+
+  #fab-checkin{
+    position:absolute; bottom:16px; right:16px; z-index:20;
+    background:var(--accent); color:#fff; border:none; border-radius:28px;
+    padding:15px 22px; font-size:15px; font-weight:700; cursor:pointer;
+    box-shadow:0 8px 20px rgba(49,130,246,.35);
+    display:flex; align-items:center; gap:7px;
+    transition:transform .12s;
+  }
+  #fab-checkin:active{transform:scale(.96);}
+  #fab-checkin .fab-icon{display:flex; align-items:center; justify-content:center;}
+  #fab-checkin .fab-icon svg{width:19px; height:19px;}
+
+  #locate-btn{
+    position:absolute; bottom:16px; left:16px; z-index:20;
+    width:46px; height:46px; border-radius:50%;
+    background:var(--bg-elev); border:none; box-shadow:var(--shadow-lg); color:var(--text);
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  #locate-btn svg{width:21px; height:21px;}
+
+  /* ---------- Bottom nav ---------- */
+  #bottom-nav{
+    position:absolute; left:0; right:0; bottom:0; height:60px;
+    background:var(--bg-elev); box-shadow:0 -1px 0 var(--border);
+    display:flex; z-index:30; padding-bottom:env(safe-area-inset-bottom);
+  }
+  .nav-btn{
+    flex:1; background:none; border:none; color:var(--text-faint);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; font-size:11px; font-weight:600; cursor:pointer; position:relative;
+  }
+  .nav-btn.active{color:var(--accent);}
+  .nav-btn .icon{display:flex; align-items:center; justify-content:center;}
+  .nav-btn .icon svg{width:23px; height:23px;}
+
+  /* ---------- Profile tab ---------- */
+  #profile-tab{
+    position:absolute; inset:0 0 60px 0; display:none; flex-direction:column;
+    padding:calc(16px + env(safe-area-inset-top)) 16px 0;
+  }
+  #profile-tab.active{display:flex;}
+  #profile-scroll{flex:1; min-height:0; overflow-y:auto; padding-bottom:24px;}
+  .page-title{display:flex; align-items:center; gap:10px; font-size:22px; color:var(--text); font-weight:800; letter-spacing:-.5px; margin:4px 0 18px; flex-shrink:0;}
+  .page-icon{width:32px; height:32px; border-radius:9px; box-shadow:0 4px 10px rgba(25,31,40,.18); flex-shrink:0; object-fit:cover;}
+  .section-title{font-size:14px; color:var(--text); font-weight:800; margin:24px 0 10px; letter-spacing:-.2px;}
+  .card{background:var(--card); border:none; box-shadow:var(--shadow); border-radius:var(--radius); padding:18px; margin-bottom:10px;}
+  .profile-head{display:flex; align-items:center; gap:14px;}
+  .avatar{width:52px; height:52px; border-radius:50%; background:var(--accent-dim); color:var(--accent);
+    display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; flex-shrink:0;}
+  .profile-head .name{font-size:18px; font-weight:800; letter-spacing:-.3px;}
+  .profile-head .grade{font-size:13px; color:var(--teal); font-weight:600; margin-top:3px;}
+  .profile-head .grade.unset{color:var(--text-faint); font-weight:500;}
+  .edit-link{margin-left:auto; background:var(--field); border:none; color:var(--text-dim); font-weight:600; border-radius:10px; padding:8px 12px; font-size:12px; cursor:pointer;}
+
+  .menu-row{
+    display:flex; align-items:center; justify-content:space-between; width:100%;
+    font-size:14px; font-weight:700; color:var(--text); text-align:left;
+  }
+  .menu-row-right{display:flex; align-items:center; gap:4px; color:var(--text-faint); font-size:13px; font-weight:600;}
+  .menu-row-right svg{width:16px; height:16px;}
+  .app-footer{text-align:center; font-size:11px; color:var(--text-faint); margin:22px 0 8px;}
+
+  .checkin-card b{font-size:15px; font-weight:700;}
+  .checkin-card .meta{font-size:12px; color:var(--text-dim); margin-top:4px;}
+  .empty-note{color:var(--text-faint); font-size:13px; text-align:center; padding:20px 0;}
+
+  .history-item{display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--border);}
+  .history-item:first-child{padding-top:0;}
+  .history-item:last-child{border-bottom:none; padding-bottom:0;}
+  .history-item .body{flex:1; min-width:0;}
+  .history-item .body b{font-size:14px; font-weight:700;}
+  .history-item .body .meta{font-size:12px; color:var(--text-dim); margin-top:3px; line-height:1.4;}
+  .history-delete{background:none; border:none; color:var(--text-faint); font-size:18px; line-height:1; cursor:pointer; padding:6px; flex-shrink:0;}
+
+
+  /* ---------- Bottom sheets ---------- */
+  .sheet-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100;
+    display:none; align-items:flex-end;
+  }
+  .sheet-overlay.show{display:flex;}
+  .sheet{
+    position:relative;
+    width:100%; max-height:82vh; background:var(--bg-elev);
+    border-radius:24px 24px 0 0; padding:10px 18px calc(20px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; overflow:hidden;
+    animation:slideUp .22s ease-out;
+    box-shadow:0 -8px 30px rgba(25,31,40,.12);
+    transition:transform .2s ease;
+  }
+  @keyframes slideUp{from{transform:translateY(100%)} to{transform:translateY(0)}}
+  .sheet-handle{
+    width:100%; height:28px; margin-bottom:4px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    cursor:grab; touch-action:none;
+  }
+  .sheet-handle::before{content:''; width:36px; height:4px; background:var(--border); border-radius:2px;}
+  .sheet-title{font-size:18px; font-weight:800; margin-bottom:12px; letter-spacing:-.3px;}
+  .sheet-body{overflow-y:auto; flex:1;}
+
+  .search-input{
+    width:100%; background:var(--field); border:1.5px solid transparent; color:var(--text);
+    border-radius:14px; padding:13px 15px; font-size:16px; outline:none; margin-bottom:10px;
+  }
+  .search-input:focus{border-color:var(--accent); background:#fff; box-shadow:0 0 0 3px var(--accent-dim);}
+  .place-item{
+    display:flex; align-items:center; gap:10px;
+    padding:13px 4px; border-bottom:1px solid var(--border);
+  }
+  .place-item:last-child{border-bottom:none;}
+  .place-info{flex:1; min-width:0;}
+  .place-info b{font-size:14px; font-weight:700; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .place-info span{font-size:12px; color:var(--text-dim); display:block; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .place-item .mini-btn{flex-shrink:0;}
+
+  .toggle-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0;}
+  .toggle-row .label b{font-size:14px; font-weight:700; display:block;}
+  .toggle-row .label span{font-size:12px; color:var(--text-dim);}
+  .switch{width:46px; height:27px; border-radius:14px; background:var(--border); position:relative; cursor:pointer; flex-shrink:0; transition:.15s;}
+  .switch.on{background:var(--teal);}
+  .switch::after{content:''; position:absolute; top:3px; left:3px; width:21px; height:21px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); transition:.15s;}
+  .switch.on::after{left:22px;}
+
+  .field-hint{font-size:12px; color:var(--text-faint); margin-top:6px; line-height:1.4;}
+
+  .filter-row{display:flex; gap:8px; margin-bottom:14px;}
+  .filter-chip{
+    flex:1; text-align:center; padding:9px 0; border-radius:10px; background:var(--field);
+    border:1.5px solid transparent; font-size:13px; font-weight:600; color:var(--text-dim); cursor:pointer;
+  }
+  .filter-chip.active{background:var(--accent-dim); border-color:var(--accent); color:var(--accent); font-weight:700;}
+
+  .dur-stepper{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--field); border-radius:14px; padding:6px; margin:6px 0 16px;
+  }
+  .dur-btn{
+    width:40px; height:40px; border-radius:10px; border:none; background:var(--card);
+    color:var(--accent); font-size:20px; font-weight:700; cursor:pointer; box-shadow:var(--shadow);
+  }
+  .dur-btn:active{transform:scale(.94);}
+  .dur-btn:disabled{color:var(--text-faint); cursor:default;}
+  .dur-value{font-size:17px; font-weight:800; color:var(--text);}
+
+  .gym-people-header{font-size:14px; color:var(--text-dim); font-weight:600; margin-bottom:8px;}
+  .activity-gym-group{margin-bottom:18px;}
+  .activity-gym-group:last-child{margin-bottom:0;}
+  .activity-gym-header{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;}
+  .activity-gym-header b{font-size:14px; font-weight:800;}
+  .person-card{
+    background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; margin-bottom:8px;
+    display:flex; gap:10px; align-items:flex-start;
+  }
+  .person-card .pav{width:40px; height:40px; border-radius:50%; background:var(--accent-dim); color:var(--accent); font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .person-card .body{flex:1; min-width:0;}
+  .person-card .name-row{display:flex; align-items:center; flex-wrap:wrap; row-gap:4px; column-gap:6px;}
+  .person-card .name-row b{font-size:14px; font-weight:700; word-break:keep-all; overflow-wrap:break-word;}
+  .person-card > .badge{font-size:10px; background:var(--teal-dim); color:var(--teal); padding:3px 7px; border-radius:8px; font-weight:700; white-space:nowrap; flex-shrink:0; margin-left:auto;}
+  .person-card .grade{font-size:12px; color:var(--teal); font-weight:600; margin-top:2px;}
+  .person-card .time-row{display:flex; align-items:center; gap:6px; margin-top:3px; flex-wrap:nowrap; line-height:1;}
+  .person-card .time-left{font-size:12px; line-height:1; color:var(--text-dim); white-space:nowrap; flex-shrink:0;}
+  .person-card .time-left.low{color:var(--danger); font-weight:700;}
+  .person-card .time-sep{font-size:12px; line-height:1; color:var(--text-faint); flex-shrink:0;}
+  .person-card .msg{font-size:13px; color:var(--text-dim); margin-top:5px; line-height:1.4;}
+  .icon-btn{
+    background:none; border:none; color:var(--text-faint);
+    padding:4px; border-radius:8px; flex-shrink:0; white-space:nowrap; line-height:1;
+    display:flex; align-items:center; gap:4px; font-size:11px; font-weight:600; cursor:pointer;
+  }
+  .icon-btn:active{background:var(--danger-dim); color:var(--danger);}
+  .icon-btn.hidden-state{color:var(--accent); background:none;}
+  .icon-btn.hidden-state:active{color:var(--danger); background:var(--danger-dim);}
+  .icon-btn svg{width:14px; height:14px; flex-shrink:0;}
+  .mini-btn{background:var(--field); border:none; color:var(--text); font-weight:600; border-radius:10px; padding:7px 11px; font-size:12px; cursor:pointer;}
+  .mini-btn.primary{background:var(--accent); color:#fff;}
+  .mini-btn.danger{color:var(--danger); background:var(--danger-dim);}
+  .mini-btn.active-checkin{color:var(--teal); background:var(--teal-dim);}
+
+  .toast{
+    position:fixed; bottom:80px; left:50%; transform:translateX(-50%); z-index:300;
+    background:#191F28; color:#fff; padding:12px 18px; border-radius:24px; font-size:13px; font-weight:600;
+    box-shadow:var(--shadow-lg);
+    opacity:0; pointer-events:none; transition:opacity .2s;
+    white-space:nowrap; max-width:88vw; overflow:hidden; text-overflow:ellipsis;
+  }
+  .toast.show{opacity:1;}
+
+  .close-x{position:absolute; top:8px; right:14px; background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;}
+
+  /* ---------- Confirm modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(15,17,23,.45); z-index:400;
+    display:none; align-items:center; justify-content:center; padding:24px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-box{
+    width:100%; max-width:320px; background:var(--card); border-radius:22px;
+    padding:26px 22px 18px; box-shadow:var(--shadow-lg);
+    animation:modalPop .16s ease-out;
+  }
+  @keyframes modalPop{from{transform:scale(.94); opacity:0} to{transform:scale(1); opacity:1}}
+  .modal-title{font-size:17px; font-weight:800; letter-spacing:-.3px; margin-bottom:8px; text-align:center;}
+  .modal-message{font-size:14px; color:var(--text-dim); line-height:1.5; text-align:center; white-space:pre-line;}
+  .modal-actions{display:flex; gap:8px; margin-top:22px;}
+  .modal-btn{
+    flex:1; border:none; border-radius:14px; padding:13px 0; font-size:15px; font-weight:700; cursor:pointer;
+    transition:transform .1s;
+  }
+  .modal-btn:active{transform:scale(.97);}
+  .modal-btn.cancel{background:var(--field); color:var(--text-dim);}
+  .modal-btn.confirm{background:var(--accent); color:#fff;}
+  .modal-btn.confirm.danger{background:var(--danger); color:#fff;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="map-tab" class="active">
+    <div id="map"></div>
+    <div id="top-stack">
+      <div id="status-banner">
+        <div class="dot"></div>
+        <div class="info">
+          <b id="status-gym-name">-</b>
+          <span id="status-expire">-</span>
+        </div>
+        <button id="status-end-btn">체크아웃</button>
+      </div>
+      <button id="activity-chip" class="activity-chip">
+        <span class="activity-chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="2.6"/><path d="M3.5 19c1-2.8 3-4.3 5.5-4.3s4.5 1.5 5.5 4.3"/><circle cx="17" cy="8.3" r="2.1"/><path d="M15 14.2c2 .2 3.6 1.7 4.5 4.2"/></svg></span>
+        <span id="activity-chip-text">지금 체크인한 혼클러가 없어요</span>
+      </button>
+    </div>
+    <button id="locate-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+    </button>
+    <button id="fab-checkin">
+      <span class="fab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 5h12l-3 4 3 4H6"/></svg></span>
+      <span id="fab-label">체크인</span>
+    </button>
+  </div>
+
+  <div id="profile-tab">
+    <div class="page-title"><img src="assets/app-icon.png" class="page-icon" alt="">나혼자 클라이밍</div>
+    <div id="profile-scroll">
+      <div class="card profile-head">
+        <div class="avatar" id="my-avatar">?</div>
+        <div style="flex:1; min-width:0;">
+          <div class="name" id="my-nickname">-</div>
+          <div class="grade" id="my-grade">-</div>
+        </div>
+        <button class="edit-link" id="edit-profile-btn">수정</button>
+      </div>
+
+      <div class="section-title">내 체크인 상태</div>
+      <div id="my-checkin-area"></div>
+
+      <div class="section-title">체크인 이력</div>
+      <div class="card" id="history-list-card">
+        <div class="empty-note">아직 체크인 이력이 없어요</div>
+      </div>
+
+      <div class="section-title">설정</div>
+      <button class="card menu-row" id="hidden-users-btn">
+        <span>숨긴 사용자 관리</span>
+        <span class="menu-row-right">
+          <span id="hidden-count-badge"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+
+      <div class="app-footer" id="app-footer"></div>
+    </div>
+  </div>
+
+  <div id="bottom-nav">
+    <button class="nav-btn active" data-tab="map-tab">
+      <span class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg>
+      </span>지도
+    </button>
+    <button class="nav-btn" data-tab="profile-tab">
+      <span class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.4-3.6 4.4-5.5 7.5-5.5s6.1 1.9 7.5 5.5"/></svg>
+      </span>프로필
+    </button>
+  </div>
+</div>
+
+<!-- Splash: Firebase 로그인/프로필 확인 중 잠깐 보여주는 화면 (닉네임 입력창 깜빡임 방지) -->
+<div id="splash">
+  <div class="splash-logo">
+    <img src="assets/app-icon.png" alt="">
+  </div>
+</div>
+
+<!-- Onboarding -->
+<div id="onboarding" class="hidden">
+  <div class="ob-logo">
+    <img src="assets/app-icon.png" alt="">
+  </div>
+  <h1 class="ob-title">나혼자 클라이밍</h1>
+  <p class="ob-sub">혼자 클라이밍하다가 누군가 말 걸어주면 좋을 때, 체크인하고 <span class="ob-sub-accent">훈수 환영</span>을 켜보세요.</p>
+  <div class="field">
+    <label>닉네임</label>
+    <input id="ob-nickname" maxlength="12" placeholder="예: 볼더링초보" />
+    <div class="field-hint">다른 사람과 닉네임이 겹칠 수 있어요</div>
+  </div>
+  <div class="field">
+    <label>클라이밍 레벨 (선택)</label>
+    <input id="ob-grade" maxlength="15" placeholder="예: V3~V4, 5.10 정도" />
+  </div>
+  <button class="btn-primary" id="ob-submit" disabled>시작하기</button>
+</div>
+
+<!-- 전체 현황 sheet -->
+<div class="sheet-overlay" id="activity-overlay">
+  <div class="sheet" style="max-height:78vh;">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="activity-close">✕</button>
+    <div class="sheet-title">지금 운동 중인 혼클러</div>
+    <div class="filter-row">
+      <button class="filter-chip active" data-filter="all">전체</button>
+      <button class="filter-chip" data-filter="open">훈수 환영만</button>
+    </div>
+    <div class="gym-people-header" id="activity-summary"></div>
+    <div class="sheet-body" id="activity-list"></div>
+  </div>
+</div>
+
+<!-- Gym search sheet -->
+<div class="sheet-overlay" id="gym-search-overlay">
+  <div class="sheet" style="max-height:80vh;">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="gym-search-close">✕</button>
+    <div class="sheet-title">클라이밍장 검색</div>
+    <input class="search-input" id="gym-search-input" placeholder="클라이밍장 이름으로 검색" />
+    <div class="sheet-body" id="gym-search-results"></div>
+  </div>
+</div>
+
+<!-- Checkin modal -->
+<div class="sheet-overlay" id="checkin-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="checkin-close">✕</button>
+    <div class="sheet-title" id="checkin-sheet-title">체크인하기</div>
+    <div class="card" style="margin-bottom:14px;">
+      <b id="checkin-gym-name" style="font-size:15px;"></b>
+      <div style="font-size:12px; color:var(--text-dim); margin-top:3px;" id="checkin-gym-addr"></div>
+    </div>
+    <div class="toggle-row">
+      <div class="label"><b>훈수 환영</b><span>켜두면 다른 혼클러들이 알아보고 말을 걸 수 있어요</span></div>
+      <div class="switch on" id="opentalk-switch"></div>
+    </div>
+    <div class="field">
+      <label>한마디 (선택)</label>
+      <textarea id="checkin-msg" maxlength="40" placeholder="예: 회색 후드에 안경 썼어요, 편하게 말 걸어주세요!"></textarea>
+      <div class="field-hint">💡 실제로 알아보고 말 걸 수 있게 인상착의를 적어두면 좋아요</div>
+    </div>
+    <div class="field" id="dur-field">
+      <label>체크인 유지 시간</label>
+      <div class="dur-stepper">
+        <button type="button" class="dur-btn" id="dur-minus">−</button>
+        <div class="dur-value" id="dur-value-text">4시간</div>
+        <button type="button" class="dur-btn" id="dur-plus">+</button>
+      </div>
+    </div>
+    <button class="btn-primary" id="checkin-submit">체크인</button>
+  </div>
+</div>
+
+<!-- Gym detail sheet -->
+<div class="sheet-overlay" id="gym-detail-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="gym-detail-close">✕</button>
+    <div class="sheet-title" id="gym-detail-title">클라이밍장</div>
+    <div class="gym-people-header" id="gym-detail-count"></div>
+    <div class="sheet-body" id="gym-detail-list"></div>
+  </div>
+</div>
+
+<!-- 숨긴 사용자 sheet -->
+<div class="sheet-overlay" id="hidden-users-overlay">
+  <div class="sheet" style="max-height:78vh;">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="hidden-users-close">✕</button>
+    <div class="sheet-title">숨긴 사용자</div>
+    <div class="field-hint" style="margin:-4px 0 12px;">여기 있는 사용자에게는 내가 체크인해도 보이지 않아요.</div>
+    <div class="sheet-body" id="hidden-list-card">
+      <div class="empty-note">숨긴 사용자가 없어요</div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit profile sheet -->
+<div class="sheet-overlay" id="edit-profile-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <button class="close-x" id="edit-profile-close">✕</button>
+    <div class="sheet-title">프로필 수정</div>
+    <div class="field">
+      <label>닉네임</label>
+      <input id="edit-nickname" maxlength="12" />
+      <div class="field-hint">다른 사람과 닉네임이 겹칠 수 있어요</div>
+    </div>
+    <div class="field">
+      <label>클라이밍 레벨</label>
+      <input id="edit-grade" maxlength="15" />
+    </div>
+    <button class="btn-primary" id="edit-profile-submit">저장</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Confirm modal -->
+<div class="modal-overlay" id="confirm-overlay">
+  <div class="modal-box">
+    <div class="modal-title" id="confirm-title"></div>
+    <div class="modal-message" id="confirm-message"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="confirm-cancel-btn">취소</button>
+      <button class="modal-btn confirm" id="confirm-ok-btn">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   온보딩 버튼은 Firebase 초기화 여부와 무관하게 항상 먼저 연결
+   (Firebase 로딩 실패 시에도 버튼 자체는 반응하도록 방어)
+============================================================ */
+const obNickname = document.getElementById('ob-nickname');
+const obSubmit = document.getElementById('ob-submit');
+obNickname.addEventListener('input', ()=>{
+  obSubmit.disabled = obNickname.value.trim().length === 0;
+});
+
+window.addEventListener('error', (e)=>{
+  console.error('앱 오류:', e.message);
+  toast('오류 발생: ' + e.message);
+});
+
+/* ============================================================
+   초기화
+============================================================ */
+if(typeof firebase === 'undefined'){
+  toast('Firebase 스크립트를 불러오지 못했어요. 새로고침 해주세요.');
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('onboarding').classList.remove('hidden');
+  throw new Error('firebase SDK not loaded');
+}
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let myUid = null;
+let myProfile = null;
+let map = null;
+let myMarker = null;
+let myLatLng = null;
+let markers = {}; // gymPlaceId -> {marker, overlay}
+let gymBuckets = {}; // gymPlaceId -> { name, addr, lat, lng, people: [] }
+let selectedGym = null; // {id,name,addr,lat,lng} chosen in search sheet
+let myCheckin = null; // current active checkin doc
+let openTalkOn = true;
+// 마지막으로 쓴 한마디/체크인 시간은 기기에 기억해뒀다가 다음 체크인 때 기본값으로 사용
+let selectedDuration = Math.min(720, Math.max(30, parseInt(localStorage.getItem('hc_last_duration'), 10) || 240));
+let hiddenByOthersSet = new Set();
+let myHiddenTargetsMap = new Map(); // targetUid -> hides 문서 id (내가 숨긴 사람들)
+let latestCheckinDocs = [];
+let unsubCheckins = null;
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+function initials(name){ return (name||'?').slice(0,1).toUpperCase(); }
+
+function fmtTimeLeft(expiresAt){
+  const ms = expiresAt.toDate ? expiresAt.toDate().getTime() - Date.now() : expiresAt - Date.now();
+  if(ms <= 0) return '만료됨';
+  const h = Math.floor(ms/3600000);
+  const m = Math.floor((ms%3600000)/60000);
+  if(h>0) return `${h}시간 ${m}분 후 종료`;
+  return `${m}분 후 종료`;
+}
+
+function openTalkLabel(openToTalk){
+  return openToTalk
+    ? '<span style="color:var(--teal); font-weight:700;">훈수 환영</span>'
+    : '훈수 꺼짐';
+}
+
+/* ============================================================
+   인증 & 온보딩
+============================================================ */
+auth.onAuthStateChanged(async (user) => {
+  if(!user){
+    auth.signInAnonymously().catch(err=>{
+      console.error(err);
+      toast('로그인 실패: ' + err.message);
+      document.getElementById('splash').classList.add('hidden');
+      document.getElementById('onboarding').classList.remove('hidden');
+    });
+    return;
+  }
+  myUid = user.uid;
+  const snap = await db.collection('users').doc(myUid).get();
+  document.getElementById('splash').classList.add('hidden');
+  if(snap.exists && snap.data().nickname){
+    myProfile = snap.data();
+    document.getElementById('onboarding').classList.add('hidden');
+    startApp();
+  } else {
+    document.getElementById('onboarding').classList.remove('hidden');
+  }
+});
+
+obSubmit.addEventListener('click', async ()=>{
+  const nickname = obNickname.value.trim();
+  if(!nickname) return;
+  obSubmit.disabled = true;
+  obSubmit.textContent = '시작하는 중...';
+  try{
+    if(!myUid){
+      // 익명 로그인이 아직 끝나지 않았으면 최대 5초 대기
+      await new Promise((resolve, reject)=>{
+        const start = Date.now();
+        const iv = setInterval(()=>{
+          if(myUid){ clearInterval(iv); resolve(); }
+          else if(Date.now() - start > 5000){ clearInterval(iv); reject(new Error('로그인 대기 시간 초과')); }
+        }, 100);
+      });
+    }
+    const profile = {
+      nickname,
+      grade: document.getElementById('ob-grade').value.trim(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    await db.collection('users').doc(myUid).set(profile);
+    myProfile = profile;
+    document.getElementById('onboarding').classList.add('hidden');
+    startApp();
+  }catch(err){
+    console.error(err);
+    toast('시작하지 못했어요: ' + err.message);
+    obSubmit.disabled = false;
+    obSubmit.textContent = '시작하기';
+  }
+});
+
+/* ============================================================
+   앱 시작 (지도 + 구독)
+============================================================ */
+function startApp(){
+  renderMyProfile();
+  subscribeHistory();
+  subscribeHiddenFromMe();
+  subscribeMyHides();
+  loadKakaoMaps(()=>{
+    initMap();
+    subscribeCheckins();
+    loadMyCheckin();
+  });
+}
+
+function loadKakaoMaps(cb){
+  if(!window.kakao || !window.kakao.maps){
+    toast('카카오맵 로딩 실패 — API 키를 확인해주세요');
+    return;
+  }
+  kakao.maps.load(cb);
+}
+
+function initMap(){
+  const container = document.getElementById('map');
+  const defaultCenter = new kakao.maps.LatLng(37.5665, 126.9780); // 서울시청 기본값
+  map = new kakao.maps.Map(container, { center: defaultCenter, level: 5 });
+
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const loc = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      myLatLng = loc;
+      map.setCenter(loc);
+      placeMyLocationDot(loc);
+    }, ()=>{}, {timeout:5000});
+  }
+
+  document.getElementById('locate-btn').addEventListener('click', ()=>{
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const loc = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      myLatLng = loc;
+      map.setCenter(loc);
+      placeMyLocationDot(loc);
+    }, ()=>toast('위치 권한을 확인해주세요'));
+  });
+}
+
+function placeMyLocationDot(loc){
+  if(myMarker) myMarker.setMap(null);
+  const el = document.createElement('div');
+  el.style.cssText = 'width:14px;height:14px;border-radius:50%;background:#3182F6;border:3px solid #fff;box-shadow:0 0 0 4px rgba(49,130,246,.28), 0 2px 6px rgba(25,31,40,.2);';
+  myMarker = new kakao.maps.CustomOverlay({ position: loc, content: el, yAnchor: 0.5 });
+  myMarker.setMap(map);
+}
+
+/* ============================================================
+   체크인 실시간 구독 -> 지도 마커 그룹핑
+============================================================ */
+function subscribeCheckins(){
+  const now = firebase.firestore.Timestamp.now();
+  unsubCheckins = db.collection('checkins')
+    .where('expiresAt', '>', now)
+    .onSnapshot(snap=>{
+      latestCheckinDocs = [];
+      snap.forEach(doc=>{
+        latestCheckinDocs.push({ uid: doc.id, ...doc.data() });
+      });
+      rebuildGymBuckets();
+    }, err=>console.error(err));
+}
+
+function subscribeHiddenFromMe(){
+  db.collection('hides').where('targetUid', '==', myUid)
+    .onSnapshot(snap=>{
+      hiddenByOthersSet = new Set(snap.docs.map(d=>d.data().hiderUid));
+      rebuildGymBuckets();
+    }, err=>console.error(err));
+}
+
+function rebuildGymBuckets(){
+  gymBuckets = {};
+  const now = Date.now();
+  latestCheckinDocs.forEach(d=>{
+    if(hiddenByOthersSet.has(d.uid)) return;
+    // Firestore 쿼리의 expiresAt 기준 시각은 구독 시작 시점에 고정되므로,
+    // 세션이 오래 열려있으면 실제로는 만료된 체크인이 계속 반환될 수 있어 여기서 한 번 더 걸러낸다.
+    if(d.expiresAt && d.expiresAt.toDate().getTime() <= now) return;
+    if(!gymBuckets[d.gymPlaceId]){
+      gymBuckets[d.gymPlaceId] = { name:d.gymName, addr:d.gymAddress, lat:d.lat, lng:d.lng, people:[] };
+    }
+    gymBuckets[d.gymPlaceId].people.push(d);
+  });
+  renderMarkers();
+  if(currentGymDetailId && gymBuckets[currentGymDetailId]){
+    renderGymDetail(currentGymDetailId);
+  }
+}
+
+function renderMarkers(){
+  if(!map) return;
+  renderActivityChip();
+  const seen = new Set(Object.keys(gymBuckets));
+  Object.keys(markers).forEach(id=>{
+    if(!seen.has(id)){
+      markers[id].overlay.setMap(null);
+      delete markers[id];
+    }
+  });
+  Object.entries(gymBuckets).forEach(([id, bucket])=>{
+    const count = bucket.people.length;
+    const openCount = bucket.people.filter(p=>p.openToTalk).length;
+    const content = document.createElement('div');
+    content.style.cssText = `
+      background:${openCount>0 ? '#01C99C' : '#FFFFFF'}; color:${openCount>0 ? '#fff' : '#191F28'}; font-weight:700; font-size:13px;
+      padding:8px 14px; border-radius:20px; box-shadow:0 4px 14px rgba(25,31,40,.16); cursor:pointer;
+      white-space:nowrap; border:2px solid #fff;
+    `;
+    content.textContent = `🧗 ${bucket.name} · ${count}명`;
+    content.addEventListener('click', ()=>openGymDetail(id));
+
+    if(markers[id]){
+      markers[id].overlay.setContent(content);
+    } else {
+      const overlay = new kakao.maps.CustomOverlay({
+        position: new kakao.maps.LatLng(bucket.lat, bucket.lng),
+        content, yAnchor: 1.2
+      });
+      overlay.setMap(map);
+      markers[id] = { overlay };
+    }
+  });
+}
+
+/* ============================================================
+   전체 현황 (지금 운동 중인 혼클러) - 인원 많은 순
+============================================================ */
+function renderActivityChip(){
+  const chip = document.getElementById('activity-chip');
+  const text = document.getElementById('activity-chip-text');
+  const gymCount = Object.keys(gymBuckets).length;
+  const peopleCount = Object.values(gymBuckets).reduce((sum, b)=>sum + b.people.length, 0);
+  if(gymCount === 0){
+    text.textContent = '지금 체크인한 혼클러가 없어요';
+    chip.classList.remove('active');
+  } else {
+    text.textContent = `${gymCount}곳 · ${peopleCount}명 활동 중`;
+    chip.classList.add('active');
+  }
+}
+
+document.getElementById('activity-chip').addEventListener('click', ()=>{
+  renderActivityList();
+  showOverlay('activity-overlay');
+});
+document.getElementById('activity-close').addEventListener('click', ()=>hideOverlay('activity-overlay'));
+
+let activityFilter = 'all';
+
+function renderActivityList(){
+  const box = document.getElementById('activity-list');
+  const entries = Object.entries(gymBuckets)
+    .map(([id, bucket])=>{
+      const people = activityFilter === 'open' ? bucket.people.filter(p=>p.openToTalk) : bucket.people;
+      return [id, { ...bucket, people }];
+    })
+    .filter(([, bucket])=>bucket.people.length > 0)
+    .sort((a, b)=> b[1].people.length - a[1].people.length);
+
+  const totalPeople = entries.reduce((sum, [, b])=>sum + b.people.length, 0);
+  document.getElementById('activity-summary').textContent = entries.length
+    ? `${entries.length}곳 · 총 ${totalPeople}명`
+    : '';
+  if(entries.length === 0){
+    box.innerHTML = `<div class="empty-note">${activityFilter === 'open' ? '지금 훈수 환영 중인 혼클러가 없어요' : '지금 체크인한 혼클러가 없어요'}</div>`;
+    return;
+  }
+  box.innerHTML = entries.map(([, bucket])=>{
+    return `
+      <div class="activity-gym-group">
+        <div class="activity-gym-header">
+          <b>${escapeHtml(bucket.name)}</b>
+          <span class="count-badge">${bucket.people.length}명</span>
+        </div>
+        ${bucket.people.map(renderPersonCard).join('')}
+      </div>
+    `;
+  }).join('');
+}
+
+document.querySelectorAll('.filter-chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    activityFilter = chip.dataset.filter;
+    renderActivityList();
+  });
+});
+
+/* ============================================================
+   내 체크인 상태
+============================================================ */
+async function loadMyCheckin(){
+  const doc = await db.collection('checkins').doc(myUid).get();
+  if(doc.exists && doc.data().expiresAt.toDate().getTime() > Date.now()){
+    myCheckin = doc.data();
+    renderStatusBanner();
+  } else {
+    if(doc.exists){
+      // 만료된 채로 남아있던 체크인 -> 이력으로 저장하고 정리
+      await archiveCheckin(doc.data());
+      await db.collection('checkins').doc(myUid).delete();
+    }
+    myCheckin = null;
+    renderStatusBanner();
+  }
+  renderMyCheckinCard();
+}
+
+async function archiveCheckin(checkin){
+  try{
+    await db.collection('users').doc(myUid).collection('history').add({
+      gymName: checkin.gymName,
+      gymAddress: checkin.gymAddress || '',
+      message: checkin.message || '',
+      grade: checkin.grade || '',
+      openToTalk: !!checkin.openToTalk,
+      checkedInAt: checkin.createdAt || null,
+      endedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(err){
+    console.error('체크인 이력 저장 실패', err);
+  }
+}
+
+function renderStatusBanner(){
+  const banner = document.getElementById('status-banner');
+  const fabLabel = document.getElementById('fab-label');
+  if(myCheckin){
+    banner.classList.add('show');
+    document.getElementById('status-gym-name').textContent = `${myCheckin.gymName} 체크인 중`;
+    document.getElementById('status-expire').innerHTML = `${openTalkLabel(myCheckin.openToTalk)} · ${fmtTimeLeft(myCheckin.expiresAt)}`;
+    fabLabel.textContent = '체크인 수정';
+  } else {
+    banner.classList.remove('show');
+    fabLabel.textContent = '체크인';
+  }
+}
+
+async function doCheckout(){
+  const ok = await showConfirm({
+    title: '체크아웃',
+    message: '체크아웃 할까요?',
+    confirmText: '체크아웃',
+    danger: true
+  });
+  if(!ok) return;
+  await archiveCheckin(myCheckin);
+  await db.collection('checkins').doc(myUid).delete();
+  myCheckin = null;
+  renderStatusBanner();
+  renderMyCheckinCard();
+  toast('체크아웃 했어요');
+}
+document.getElementById('status-end-btn').addEventListener('click', doCheckout);
+
+/* ============================================================
+   프로필 탭
+============================================================ */
+document.getElementById('app-footer').textContent = `© ${new Date().getFullYear()} 주주살롱. All rights reserved.`;
+
+function renderMyProfile(){
+  document.getElementById('my-avatar').textContent = initials(myProfile.nickname);
+  document.getElementById('my-nickname').textContent = myProfile.nickname;
+  const gradeEl = document.getElementById('my-grade');
+  gradeEl.textContent = myProfile.grade || '레벨 미설정';
+  gradeEl.classList.toggle('unset', !myProfile.grade);
+}
+
+function renderMyCheckinCard(){
+  const area = document.getElementById('my-checkin-area');
+  if(myCheckin){
+    area.innerHTML = `
+      <div class="card checkin-card">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+          <div style="min-width:0;">
+            <b>${escapeHtml(myCheckin.gymName)}</b>
+            <div class="meta">${openTalkLabel(myCheckin.openToTalk)} · ${fmtTimeLeft(myCheckin.expiresAt)}</div>
+            ${myCheckin.message ? `<div class="meta" style="margin-top:6px;">"${escapeHtml(myCheckin.message)}"</div>` : ''}
+          </div>
+          <button id="profile-checkout-btn" class="mini-btn danger" style="flex-shrink:0;">체크아웃</button>
+        </div>
+      </div>`;
+    document.getElementById('profile-checkout-btn').addEventListener('click', doCheckout);
+  } else {
+    area.innerHTML = `<div class="card"><div class="empty-note">현재 체크인한 클라이밍장이 없어요</div></div>`;
+  }
+}
+
+/* ============================================================
+   체크인 이력
+============================================================ */
+function subscribeHistory(){
+  db.collection('users').doc(myUid).collection('history')
+    .orderBy('endedAt', 'desc')
+    .limit(20)
+    .onSnapshot(snap=>{
+      const items = [];
+      snap.forEach(doc=>items.push({ id: doc.id, ...doc.data() }));
+      renderHistoryList(items);
+    }, err=>console.error(err));
+}
+
+function fmtAgo(ts){
+  if(!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const min = Math.floor((Date.now() - d.getTime()) / 60000);
+  if(min < 1) return '방금 전';
+  if(min < 60) return `${min}분 전`;
+  const h = Math.floor(min / 60);
+  if(h < 24) return `${h}시간 전`;
+  return `${Math.floor(h / 24)}일 전`;
+}
+
+function fmtDate(ts){
+  if(!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear()
+    ? `${d.getMonth() + 1}월 ${d.getDate()}일`
+    : `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
+}
+
+function fmtDuration(startTs, endTs){
+  if(!startTs || !endTs) return '';
+  const start = startTs.toDate ? startTs.toDate() : new Date(startTs);
+  const end = endTs.toDate ? endTs.toDate() : new Date(endTs);
+  const min = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if(h === 0) return `${m}분`;
+  if(m === 0) return `${h}시간`;
+  return `${h}시간 ${m}분`;
+}
+
+function renderHistoryList(items){
+  const card = document.getElementById('history-list-card');
+  if(items.length === 0){
+    card.innerHTML = `<div class="empty-note">아직 체크인 이력이 없어요</div>`;
+    return;
+  }
+  card.innerHTML = items.map(h=>{
+    const duration = fmtDuration(h.checkedInAt, h.endedAt);
+    return `
+    <div class="history-item">
+      <div class="body">
+        <b>${escapeHtml(h.gymName)}</b>
+        <div class="meta">${fmtDate(h.checkedInAt || h.endedAt)}${duration ? ' · ' + duration + ' 동안' : ''}${h.message ? ' · "' + escapeHtml(h.message) + '"' : ''}</div>
+      </div>
+      <button class="history-delete" data-id="${h.id}">✕</button>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('history-list-card').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.history-delete');
+  if(!btn) return;
+  db.collection('users').doc(myUid).collection('history').doc(btn.dataset.id).delete();
+});
+
+/* ============================================================
+   숨긴 사용자 관리
+============================================================ */
+function subscribeMyHides(){
+  db.collection('hides').where('hiderUid', '==', myUid)
+    .onSnapshot(snap=>{
+      const items = [];
+      myHiddenTargetsMap.clear();
+      snap.forEach(doc=>{
+        const d = doc.data();
+        items.push({ id: doc.id, ...d });
+        myHiddenTargetsMap.set(d.targetUid, doc.id);
+      });
+      items.sort((a, b)=>{
+        const at = a.createdAt ? a.createdAt.toMillis() : 0;
+        const bt = b.createdAt ? b.createdAt.toMillis() : 0;
+        return bt - at;
+      });
+      renderHiddenList(items);
+      // 현재 열려있는 명단이 있으면 '나를 숨김' 상태를 바로 반영
+      if(currentGymDetailId && gymBuckets[currentGymDetailId]){
+        renderGymDetail(currentGymDetailId);
+      }
+      if(document.getElementById('activity-overlay').classList.contains('show')){
+        renderActivityList();
+      }
+    }, err=>{
+      console.error(err);
+      toast('숨긴 사용자 목록을 불러오지 못했어요: ' + err.message);
+    });
+}
+
+function renderHiddenList(items){
+  const card = document.getElementById('hidden-list-card');
+  const countBadge = document.getElementById('hidden-count-badge');
+  countBadge.textContent = items.length > 0 ? `${items.length}명` : '';
+  if(items.length === 0){
+    card.innerHTML = `<div class="empty-note">숨긴 사용자가 없어요</div>`;
+    return;
+  }
+  card.innerHTML = items.map(h=>`
+    <div class="place-item">
+      <div class="place-info">
+        <b>${escapeHtml(h.targetNickname || '알 수 없음')}</b>
+        <span>${h.createdAt ? fmtAgo(h.createdAt) + ' 숨김' : '숨김'}</span>
+      </div>
+      <button class="mini-btn danger hide-unhide-btn" data-id="${h.id}">해제</button>
+    </div>
+  `).join('');
+}
+
+document.getElementById('hidden-users-btn').addEventListener('click', ()=>showOverlay('hidden-users-overlay'));
+document.getElementById('hidden-users-close').addEventListener('click', ()=>hideOverlay('hidden-users-overlay'));
+
+document.getElementById('hidden-list-card').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.hide-unhide-btn');
+  if(!btn) return;
+  db.collection('hides').doc(btn.dataset.id).delete();
+});
+
+document.getElementById('edit-profile-btn').addEventListener('click', ()=>{
+  document.getElementById('edit-nickname').value = myProfile.nickname;
+  document.getElementById('edit-grade').value = myProfile.grade || '';
+  showOverlay('edit-profile-overlay');
+});
+document.getElementById('edit-profile-close').addEventListener('click', ()=>hideOverlay('edit-profile-overlay'));
+document.getElementById('edit-profile-submit').addEventListener('click', async ()=>{
+  const nickname = document.getElementById('edit-nickname').value.trim();
+  if(!nickname){ toast('닉네임을 입력해주세요'); return; }
+  const update = {
+    nickname,
+    grade: document.getElementById('edit-grade').value.trim()
+  };
+  await db.collection('users').doc(myUid).update(update);
+  myProfile = { ...myProfile, ...update };
+  renderMyProfile();
+  if(myCheckin){
+    // 지금 체크인 중이면 다른 사람들에게 보이는 닉네임/레벨도 즉시 최신화
+    await db.collection('checkins').doc(myUid).update({ nickname: update.nickname, grade: update.grade });
+    myCheckin = { ...myCheckin, nickname: update.nickname, grade: update.grade };
+    renderStatusBanner();
+    renderMyCheckinCard();
+  }
+  hideOverlay('edit-profile-overlay');
+  toast('프로필을 저장했어요');
+});
+
+/* ============================================================
+   탭 전환
+============================================================ */
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#map-tab, #profile-tab').forEach(el=>el.classList.remove('active'));
+    document.getElementById(btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab === 'profile-tab'){
+      document.getElementById('profile-scroll').scrollTop = 0;
+    }
+  });
+});
+
+/* ============================================================
+   체크인 FAB -> 내 주변 클라이밍장 목록 / 검색 (바텀시트)
+============================================================ */
+document.getElementById('fab-checkin').addEventListener('click', ()=>{
+  if(myCheckin){
+    selectedGym = {
+      id: myCheckin.gymPlaceId,
+      name: myCheckin.gymName,
+      addr: myCheckin.gymAddress,
+      lat: myCheckin.lat,
+      lng: myCheckin.lng
+    };
+    openCheckinModal();
+    return;
+  }
+  showOverlay('gym-search-overlay');
+  const input = document.getElementById('gym-search-input');
+  if(!input.value.trim()){
+    loadNearbyGyms();
+  }
+});
+document.getElementById('gym-search-close').addEventListener('click', ()=>hideOverlay('gym-search-overlay'));
+
+let searchDebounce = null;
+document.getElementById('gym-search-input').addEventListener('input', (e)=>{
+  clearTimeout(searchDebounce);
+  const q = e.target.value.trim();
+  if(!q){ loadNearbyGyms(); return; }
+  searchDebounce = setTimeout(()=>searchGyms(q), 300);
+});
+
+function loadNearbyGyms(){
+  const box = document.getElementById('gym-search-results');
+  box.innerHTML = `<div class="empty-note">내 주변 클라이밍장을 찾는 중...</div>`;
+  const center = myLatLng || map.getCenter();
+  const places = new kakao.maps.services.Places();
+  places.keywordSearch('클라이밍', (results, status)=>{
+    if(status !== kakao.maps.services.Status.OK || results.length === 0){
+      box.innerHTML = `<div class="empty-note">주변에서 클라이밍장을 찾지 못했어요.<br>위 검색창에서 이름으로 찾아보세요.</div>`;
+      return;
+    }
+    renderGymResults(results, box, '내 주변 클라이밍장');
+  }, { location: center, radius: 20000, sort: kakao.maps.services.SortBy.DISTANCE });
+}
+
+function searchGyms(query){
+  const places = new kakao.maps.services.Places();
+  const center = myLatLng || map.getCenter();
+  places.keywordSearch(query, (results, status)=>{
+    const box = document.getElementById('gym-search-results');
+    if(status !== kakao.maps.services.Status.OK || results.length === 0){
+      box.innerHTML = `<div class="empty-note">검색 결과가 없어요</div>`;
+      return;
+    }
+    renderGymResults(results, box, null);
+  }, { location: center, sort: kakao.maps.services.SortBy.DISTANCE });
+}
+
+function renderGymResults(results, box, headerText){
+  box.innerHTML = '';
+  if(headerText){
+    const header = document.createElement('div');
+    header.className = 'gym-people-header';
+    header.textContent = headerText;
+    box.appendChild(header);
+  }
+  results.forEach(r=>{
+    const isCheckedIn = myCheckin && myCheckin.gymPlaceId === r.id;
+    const item = document.createElement('div');
+    item.className = 'place-item';
+    const km = r.distance ? (parseInt(r.distance, 10) / 1000).toFixed(1) + 'km' : '';
+    item.innerHTML = `
+      <div class="place-info">
+        <b>${escapeHtml(r.place_name)}</b>
+        <span>${escapeHtml(r.road_address_name || r.address_name)}${km ? ' · ' + km : ''}</span>
+      </div>
+      <button class="mini-btn ${isCheckedIn ? 'active-checkin' : 'primary'} place-checkin-btn" type="button">${isCheckedIn ? '체크인 중' : '체크인'}</button>
+    `;
+    item.querySelector('.place-checkin-btn').addEventListener('click', ()=>{
+      selectedGym = {
+        id: r.id, name: r.place_name,
+        addr: r.road_address_name || r.address_name,
+        lat: parseFloat(r.y), lng: parseFloat(r.x)
+      };
+      hideOverlay('gym-search-overlay');
+      openCheckinModal();
+    });
+    box.appendChild(item);
+  });
+}
+
+/* ============================================================
+   체크인 모달
+============================================================ */
+const DUR_STEP_MIN = 30;
+const DUR_MIN_MIN = 30;
+const DUR_MAX_MIN = 720;
+let isEditingCurrentCheckin = false;
+
+function fmtDurMin(min){
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if(h === 0) return `${m}분`;
+  if(m === 0) return `${h}시간`;
+  return `${h}시간 ${m}분`;
+}
+
+function updateDurDisplay(){
+  document.getElementById('dur-value-text').textContent = fmtDurMin(selectedDuration);
+  document.getElementById('dur-minus').disabled = selectedDuration <= DUR_MIN_MIN;
+  document.getElementById('dur-plus').disabled = selectedDuration >= DUR_MAX_MIN;
+}
+
+function openCheckinModal(){
+  document.getElementById('checkin-gym-name').textContent = selectedGym.name;
+  document.getElementById('checkin-gym-addr').textContent = selectedGym.addr;
+  isEditingCurrentCheckin = !!(myCheckin && myCheckin.gymPlaceId === selectedGym.id);
+  openTalkOn = isEditingCurrentCheckin ? myCheckin.openToTalk : true;
+  document.getElementById('opentalk-switch').classList.toggle('on', openTalkOn);
+  document.getElementById('checkin-msg').value = isEditingCurrentCheckin
+    ? (myCheckin.message || '')
+    : (localStorage.getItem('hc_last_message') || '');
+  document.getElementById('checkin-sheet-title').textContent = isEditingCurrentCheckin ? '체크인 수정' : '체크인하기';
+  document.getElementById('checkin-submit').textContent = isEditingCurrentCheckin ? '저장' : '체크인';
+  document.getElementById('dur-field').style.display = isEditingCurrentCheckin ? 'none' : '';
+  updateDurDisplay();
+  showOverlay('checkin-overlay');
+}
+document.getElementById('checkin-close').addEventListener('click', ()=>hideOverlay('checkin-overlay'));
+document.getElementById('opentalk-switch').addEventListener('click', function(){
+  openTalkOn = !openTalkOn;
+  this.classList.toggle('on', openTalkOn);
+});
+document.getElementById('dur-minus').addEventListener('click', ()=>{
+  selectedDuration = Math.max(DUR_MIN_MIN, selectedDuration - DUR_STEP_MIN);
+  localStorage.setItem('hc_last_duration', selectedDuration);
+  updateDurDisplay();
+});
+document.getElementById('dur-plus').addEventListener('click', ()=>{
+  selectedDuration = Math.min(DUR_MAX_MIN, selectedDuration + DUR_STEP_MIN);
+  localStorage.setItem('hc_last_duration', selectedDuration);
+  updateDurDisplay();
+});
+document.getElementById('checkin-submit').addEventListener('click', async ()=>{
+  if(!selectedGym){ toast('클라이밍장을 선택해주세요'); return; }
+  const expiresAt = isEditingCurrentCheckin
+    ? myCheckin.expiresAt
+    : firebase.firestore.Timestamp.fromMillis(Date.now() + selectedDuration*60000);
+  const data = {
+    gymPlaceId: selectedGym.id,
+    gymName: selectedGym.name,
+    gymAddress: selectedGym.addr,
+    lat: selectedGym.lat,
+    lng: selectedGym.lng,
+    nickname: myProfile.nickname,
+    grade: myProfile.grade || '',
+    openToTalk: openTalkOn,
+    message: document.getElementById('checkin-msg').value.trim(),
+    createdAt: isEditingCurrentCheckin ? myCheckin.createdAt : firebase.firestore.FieldValue.serverTimestamp(),
+    expiresAt
+  };
+  await db.collection('checkins').doc(myUid).set(data);
+  localStorage.setItem('hc_last_message', data.message);
+  myCheckin = { ...data, expiresAt };
+  renderStatusBanner();
+  renderMyCheckinCard();
+  hideOverlay('checkin-overlay');
+  toast(isEditingCurrentCheckin ? '체크인을 수정했어요' : '체크인 완료! 🧗');
+  const center = new kakao.maps.LatLng(selectedGym.lat, selectedGym.lng);
+  map.setCenter(center);
+});
+
+/* ============================================================
+   클라이밍장 상세 (마커 탭)
+============================================================ */
+let currentGymDetailId = null;
+function openGymDetail(gymId){
+  currentGymDetailId = gymId;
+  renderGymDetail(gymId);
+  showOverlay('gym-detail-overlay');
+}
+document.getElementById('gym-detail-close').addEventListener('click', ()=>{
+  hideOverlay('gym-detail-overlay');
+  currentGymDetailId = null;
+});
+
+function renderPersonCard(p){
+  const isMe = p.uid === myUid;
+  const minutesLeft = p.expiresAt ? Math.round((p.expiresAt.toDate().getTime() - Date.now()) / 60000) : null;
+  const lowTime = minutesLeft !== null && minutesLeft <= 30;
+  const hideId = myHiddenTargetsMap.get(p.uid);
+  const ghostIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11a7 7 0 0 1 14 0v9l-2.5-2-2 2-2-2-2 2-2-2L5 20z"/><circle cx="9.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="10.5" r="1" fill="currentColor" stroke="none"/></svg>';
+  const hideBtn = isMe ? '' : hideId
+    ? `<button class="icon-btn hidden-state" data-unhide-id="${escapeHtml(hideId)}" data-nickname="${escapeHtml(p.nickname)}" title="숨김 해제">${ghostIcon}<span>나를 숨김</span></button>`
+    : `<button class="icon-btn" data-hide-uid="${escapeHtml(p.uid)}" data-nickname="${escapeHtml(p.nickname)}" title="나를 숨기기">${ghostIcon}<span>나를 숨기기</span></button>`;
+  return `
+    <div class="person-card">
+      <div class="pav">${initials(p.nickname)}</div>
+      <div class="body">
+        <div class="name-row">
+          <b>${escapeHtml(p.nickname)}${isMe ? ' (나)' : ''}</b>
+        </div>
+        ${p.grade ? `<div class="grade">${escapeHtml(p.grade)}</div>` : ''}
+        <div class="time-row">
+          <div class="time-left${lowTime ? ' low' : ''}">⏱ ${fmtTimeLeft(p.expiresAt)}</div>
+          ${hideBtn ? `<span class="time-sep">·</span>${hideBtn}` : ''}
+        </div>
+        ${p.message ? `<div class="msg">"${escapeHtml(p.message)}"</div>` : ''}
+      </div>
+      ${p.openToTalk ? '<span class="badge">훈수 환영</span>' : ''}
+    </div>`;
+}
+
+function renderGymDetail(gymId){
+  const bucket = gymBuckets[gymId];
+  if(!bucket) return;
+  document.getElementById('gym-detail-title').textContent = bucket.name;
+  document.getElementById('gym-detail-count').textContent = `지금 ${bucket.people.length}명의 혼클러가 있어요`;
+  document.getElementById('gym-detail-list').innerHTML = bucket.people.map(renderPersonCard).join('');
+}
+
+async function hideFromUser(uid, nickname){
+  const ok = await showConfirm({
+    title: '나를 숨기기',
+    message: `${nickname}님에게 내 체크인이 더 이상 보이지 않게 할까요?`,
+    confirmText: '나를 숨기기',
+    danger: true
+  });
+  if(!ok) return;
+  await db.collection('hides').add({
+    hiderUid: myUid,
+    targetUid: uid,
+    targetNickname: nickname,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  toast(`${truncateName(nickname)}님에게 숨겼어요`);
+}
+
+async function unhideFromUser(hideId, nickname){
+  await db.collection('hides').doc(hideId).delete();
+  toast(`${truncateName(nickname)}님에게 다시 보이게 했어요`);
+}
+
+function handlePersonCardActionClick(e){
+  const unhideBtn = e.target.closest('[data-unhide-id]');
+  if(unhideBtn){
+    unhideFromUser(unhideBtn.dataset.unhideId, unhideBtn.dataset.nickname);
+    return;
+  }
+  const hideBtn = e.target.closest('[data-hide-uid]');
+  if(hideBtn){
+    hideFromUser(hideBtn.dataset.hideUid, hideBtn.dataset.nickname);
+  }
+}
+document.getElementById('gym-detail-list').addEventListener('click', handlePersonCardActionClick);
+document.getElementById('activity-list').addEventListener('click', handlePersonCardActionClick);
+
+/* ============================================================
+   유틸
+============================================================ */
+/* ============================================================
+   오버레이(바텀시트/모달) 관리 - 디바이스 뒤로가기 버튼으로 닫기 지원
+   여러 개가 겹쳐 열려도 history에는 "열림 상태" 하나만 push하고,
+   전부 닫힐 때만 pop 되도록 해서 뒤로가기 한 번에 한 겹씩 자연스럽게 닫힘.
+============================================================ */
+let openOverlayCount = 0;
+let historyPushed = false;
+let suppressPopstate = false;
+let pendingConfirmCancel = null;
+
+function scheduleOverlayHistoryCheck(){
+  queueMicrotask(()=>{
+    if(openOverlayCount === 0 && historyPushed){
+      historyPushed = false;
+      suppressPopstate = true;
+      history.back();
+    }
+  });
+}
+
+function showOverlay(id){
+  document.getElementById(id).classList.add('show');
+  openOverlayCount++;
+  if(!historyPushed){
+    historyPushed = true;
+    history.pushState({ honeclimberSheet: true }, '');
+  }
+}
+
+function hideOverlay(id){
+  const el = document.getElementById(id);
+  if(!el.classList.contains('show')) return;
+  el.classList.remove('show');
+  openOverlayCount = Math.max(0, openOverlayCount - 1);
+  scheduleOverlayHistoryCheck();
+}
+
+document.querySelectorAll('.sheet-overlay').forEach(ov=>{
+  ov.addEventListener('click', (e)=>{ if(e.target === ov) hideOverlay(ov.id); });
+});
+
+/* 바텀시트 손잡이를 아래로 쓸어내리면 닫히도록 */
+document.querySelectorAll('.sheet-overlay').forEach(overlay=>{
+  const sheet = overlay.querySelector('.sheet');
+  const handle = overlay.querySelector('.sheet-handle');
+  if(!sheet || !handle) return;
+
+  let dragging = false;
+  let startY = 0;
+  let currentY = 0;
+
+  handle.addEventListener('pointerdown', (e)=>{
+    dragging = true;
+    startY = e.clientY;
+    currentY = 0;
+    sheet.style.transition = 'none';
+    handle.setPointerCapture(e.pointerId);
+  });
+  handle.addEventListener('pointermove', (e)=>{
+    if(!dragging) return;
+    currentY = Math.max(0, e.clientY - startY);
+    sheet.style.transform = `translateY(${currentY}px)`;
+  });
+  const endDrag = ()=>{
+    if(!dragging) return;
+    dragging = false;
+    const dismiss = currentY > sheet.offsetHeight * 0.22;
+    if(dismiss){
+      sheet.style.transition = 'transform .18s ease-in';
+      sheet.style.transform = 'translateY(100%)';
+      setTimeout(()=>{
+        sheet.style.transition = '';
+        sheet.style.transform = '';
+        hideOverlay(overlay.id);
+      }, 180);
+    } else {
+      sheet.style.transition = 'transform .2s ease';
+      sheet.style.transform = '';
+    }
+  };
+  handle.addEventListener('pointerup', endDrag);
+  handle.addEventListener('pointercancel', endDrag);
+});
+
+function closeAllOpenOverlays(){
+  const open = document.querySelectorAll('.sheet-overlay.show, .modal-overlay.show');
+  if(open.length === 0) return false;
+  open.forEach(ov=>ov.classList.remove('show'));
+  openOverlayCount = 0;
+  historyPushed = false;
+  if(pendingConfirmCancel){
+    const fn = pendingConfirmCancel;
+    pendingConfirmCancel = null;
+    fn();
+  }
+  return true;
+}
+
+window.addEventListener('popstate', ()=>{
+  if(suppressPopstate){ suppressPopstate = false; return; }
+  // 브라우저 미리보기(비 네이티브 환경)에서 뒤로가기 테스트용 fallback
+  closeAllOpenOverlays();
+});
+
+/* ============================================================
+   안드로이드 기기 뒤로가기 버튼 — 네이티브 이벤트로 직접 제어
+   (WebView 자체 history.back() 연동이 기기별로 불안정해서 확실하게 가로챈다)
+============================================================ */
+if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App){
+  let lastBackPressAt = 0;
+  window.Capacitor.Plugins.App.addListener('backButton', ()=>{
+    if(closeAllOpenOverlays()) return;
+    const now = Date.now();
+    if(now - lastBackPressAt < 2000){
+      window.Capacitor.Plugins.App.exitApp();
+    } else {
+      lastBackPressAt = now;
+      toast('한 번 더 누르면 앱이 종료돼요');
+    }
+  });
+}
+
+function showConfirm({ title, message, confirmText = '확인', cancelText = '취소', danger = false }){
+  return new Promise(resolve=>{
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-message').textContent = message;
+    const okBtn = document.getElementById('confirm-ok-btn');
+    const cancelBtn = document.getElementById('confirm-cancel-btn');
+    okBtn.textContent = confirmText;
+    cancelBtn.textContent = cancelText;
+    okBtn.classList.toggle('danger', danger);
+
+    const cleanup = (result)=>{
+      hideOverlay('confirm-overlay');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      pendingConfirmCancel = null;
+      resolve(result);
+    };
+    const onOk = ()=>cleanup(true);
+    const onCancel = ()=>cleanup(false);
+    pendingConfirmCancel = ()=>cleanup(false);
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    showOverlay('confirm-overlay');
+  });
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function truncateName(name, maxLen = 8){
+  const n = name || '';
+  return n.length > maxLen ? n.slice(0, maxLen) + '…' : n;
+}
+
+// 배너/체크인 만료 시간 1분마다 갱신
+setInterval(()=>{
+  if(myCheckin){
+    renderStatusBanner();
+    renderMyCheckinCard();
+  }
+  // 만료된 체크인이 지도/목록에서 실제로 사라지도록 주기적으로 다시 계산
+  rebuildGymBuckets();
+}, 60000);
+</script>
+</body>
+</html>

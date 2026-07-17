@@ -1,0 +1,8 @@
+{
+  "appId": "com.honclimber.map",
+  "appName": "나혼자 클라이밍",
+  "webDir": "docs",
+  "server": {
+    "androidScheme": "https"
+  }
+}
