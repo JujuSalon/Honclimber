@@ -252,6 +252,7 @@
   .sheet-handle::before{content:''; width:36px; height:4px; background:var(--border); border-radius:2px;}
   .sheet-title{font-size:18px; font-weight:800; margin-bottom:12px; letter-spacing:-.3px;}
   .sheet-body{overflow-y:auto; flex:1;}
+  .sheet-capped{max-height:78vh;}
 
   .search-input{
     width:100%; background:var(--field); border:1.5px solid transparent; color:var(--text);
@@ -365,6 +366,19 @@
   .modal-btn.cancel{background:var(--field); color:var(--text-dim);}
   .modal-btn.confirm{background:var(--accent); color:#fff;}
   .modal-btn.confirm.danger{background:var(--danger); color:#fff;}
+
+  /* ---------- 데스크톱(PC) 대응: 바텀시트를 우측 패널로 ---------- */
+  @media (min-width: 860px){
+    .sheet-overlay{ align-items:stretch; justify-content:flex-end; }
+    .sheet{
+      width:420px; max-width:90vw; height:100%; max-height:100%;
+      border-radius:20px 0 0 20px;
+      animation:slideInRight .22s ease-out;
+    }
+    .sheet-capped{max-height:100%;}
+    @keyframes slideInRight{from{transform:translateX(100%)} to{transform:translateX(0)}}
+    .sheet-handle{display:none;}
+  }
 </style>
 </head>
 <body>
@@ -470,7 +484,7 @@
 
 <!-- 전체 현황 sheet -->
 <div class="sheet-overlay" id="activity-overlay">
-  <div class="sheet" style="max-height:78vh;">
+  <div class="sheet sheet-capped">
     <div class="sheet-handle"></div>
     <button class="close-x" id="activity-close">✕</button>
     <div class="sheet-title">지금 운동 중인 혼클러</div>
@@ -485,7 +499,7 @@
 
 <!-- Gym search sheet -->
 <div class="sheet-overlay" id="gym-search-overlay">
-  <div class="sheet" style="max-height:80vh;">
+  <div class="sheet sheet-capped">
     <div class="sheet-handle"></div>
     <button class="close-x" id="gym-search-close">✕</button>
     <div class="sheet-title">클라이밍장 검색</div>
@@ -538,7 +552,7 @@
 
 <!-- 숨긴 사용자 sheet -->
 <div class="sheet-overlay" id="hidden-users-overlay">
-  <div class="sheet" style="max-height:78vh;">
+  <div class="sheet sheet-capped">
     <div class="sheet-handle"></div>
     <button class="close-x" id="hidden-users-close">✕</button>
     <div class="sheet-title">숨긴 사용자</div>
@@ -1538,6 +1552,11 @@ function closeAllOpenOverlays(){
   }
   return true;
 }
+
+// PC에서는 ESC 키로도 열려있는 시트/팝업을 닫을 수 있게
+window.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape') closeAllOpenOverlays();
+});
 
 window.addEventListener('popstate', ()=>{
   if(suppressPopstate){ suppressPopstate = false; return; }
