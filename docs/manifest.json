@@ -1,0 +1,26 @@
+{
+  "name": "나혼자 클라이밍",
+  "short_name": "나혼자 클라이밍",
+  "description": "혼자 클라이밍하다가 누군가가 필요할 때, 체크인하고 훈수 환영을 켜보세요.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F2F4F6",
+  "theme_color": "#3182F6",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
