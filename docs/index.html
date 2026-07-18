@@ -247,7 +247,8 @@
   }
   .menu-row-right{display:flex; align-items:center; gap:4px; color:var(--text-faint); font-size:13px; font-weight:600;}
   .menu-row-right svg{width:16px; height:16px;}
-  .menu-row.danger{color:var(--danger);}
+  .reset-text-btn{display:block; margin:18px auto 0; background:none; border:none; color:var(--text-faint); font-size:12px; font-weight:600; cursor:pointer; padding:6px;}
+  .reset-text-btn:active{color:var(--danger);}
   .app-footer{text-align:center; font-size:11px; color:var(--text-faint); margin:22px 0 8px;}
 
   .checkin-card b{font-size:15px; font-weight:700;}
@@ -496,12 +497,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </span>
       </button>
-      <button class="card menu-row danger" id="reset-app-btn">
-        <span>초기화</span>
-        <span class="menu-row-right">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-        </span>
-      </button>
+      <button class="reset-text-btn" id="reset-app-btn">초기화</button>
 
       <div class="app-footer" id="app-footer"></div>
     </div>
