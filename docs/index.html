@@ -247,6 +247,7 @@
   }
   .menu-row-right{display:flex; align-items:center; gap:4px; color:var(--text-faint); font-size:13px; font-weight:600;}
   .menu-row-right svg{width:16px; height:16px;}
+  .menu-row.danger{color:var(--danger);}
   .app-footer{text-align:center; font-size:11px; color:var(--text-faint); margin:22px 0 8px;}
 
   .checkin-card b{font-size:15px; font-weight:700;}
@@ -492,6 +493,12 @@
         <span>숨긴 사용자 관리</span>
         <span class="menu-row-right">
           <span id="hidden-count-badge"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+      <button class="card menu-row danger" id="reset-app-btn">
+        <span>초기화</span>
+        <span class="menu-row-right">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </span>
       </button>
@@ -1219,6 +1226,28 @@ function renderHiddenList(items){
 
 document.getElementById('hidden-users-btn').addEventListener('click', ()=>showOverlay('hidden-users-overlay'));
 document.getElementById('hidden-users-close').addEventListener('click', ()=>hideOverlay('hidden-users-overlay'));
+
+document.getElementById('reset-app-btn').addEventListener('click', async ()=>{
+  const ok = await showConfirm({
+    title: '초기화',
+    message: '프로필과 체크인 정보가 모두 초기화되고 처음 화면부터 다시 시작해요. 계속할까요?',
+    confirmText: '초기화',
+    cancelText: '취소',
+    danger: true
+  });
+  if(!ok) return;
+  try{
+    if(myCheckin){
+      await archiveCheckin(myCheckin);
+      await db.collection('checkins').doc(myUid).delete();
+    }
+    await auth.signOut();
+    location.reload();
+  }catch(err){
+    console.error(err);
+    toast('초기화하지 못했어요: ' + err.message);
+  }
+});
 
 document.getElementById('hidden-list-card').addEventListener('click', (e)=>{
   const btn = e.target.closest('.hide-unhide-btn');
