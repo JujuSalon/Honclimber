@@ -255,11 +255,6 @@
     transition:transform .2s ease;
   }
   @keyframes slideUp{from{transform:translateY(100%)} to{transform:translateY(0)}}
-  /* 카카오톡 인앱 브라우저 하단 툴바 보정 */
-  .is-kakao-inapp .sheet{
-    max-height:calc(82vh - 56px);
-    padding-bottom:calc(20px + env(safe-area-inset-bottom) + 56px);
-  }
   .sheet-title{font-size:18px; font-weight:800; margin-bottom:12px; letter-spacing:-.3px;}
   .sheet-body{overflow-y:auto; flex:1;}
   .sheet-capped{max-height:78vh;}
@@ -629,12 +624,6 @@ window.addEventListener('error', (e)=>{
   console.error('앱 오류:', e.message);
   toast('오류 발생: ' + e.message);
 });
-
-// 카카오톡 인앱 브라우저는 하단에 자체 툴바를 얹어서 뷰포트 높이 계산이 어긋나
-// 바텀시트 하단이 그 툴바에 가려 잘리는 경우가 있어 별도로 여백을 보정한다.
-if(/KAKAOTALK/i.test(navigator.userAgent)){
-  document.documentElement.classList.add('is-kakao-inapp');
-}
 
 /* ============================================================
    초기화
