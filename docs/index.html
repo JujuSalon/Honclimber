@@ -142,11 +142,10 @@
   .edit-profile-actions{display:flex; gap:8px; margin-top:8px;}
   .edit-profile-actions .btn-primary{margin-top:0; flex:1;}
   .btn-account-reset{
-    background:var(--danger-dim); color:var(--danger); border:none; border-radius:16px;
-    padding:16px 14px; font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap;
-    transition:transform .12s;
+    background:none; color:var(--text-faint); border:none;
+    padding:16px 10px; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap;
   }
-  .btn-account-reset:active{transform:scale(.98);}
+  .btn-account-reset:active{color:var(--danger);}
 
   /* ---------- Map tab ---------- */
   #map-tab{position:absolute; inset:0 0 60px 0; display:none;}
@@ -642,7 +641,7 @@
       <input id="edit-grade" maxlength="15" />
     </div>
     <div class="edit-profile-actions">
-      <button class="btn-account-reset" id="account-reset-btn">계정 초기화</button>
+      <button class="btn-account-reset" id="account-reset-btn">초기화</button>
       <button class="btn-primary" id="edit-profile-submit">저장</button>
     </div>
   </div>
