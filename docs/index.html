@@ -1677,8 +1677,12 @@ installBtn.addEventListener('click', async ()=>{
     return;
   }
   if(isKakaoInApp || isNaverInApp){
-    const bareUrl = location.href.replace(/^https?:\/\//, '');
-    location.href = 'intent://' + bareUrl + '#Intent;scheme=https;package=com.android.chrome;end';
+    showConfirm({
+      title: '홈 화면에 추가',
+      message: '카카오톡/네이버 브라우저에서는 자동 설치를 지원하지 않아요. 메뉴(⋯) 버튼을 눌러 "다른 브라우저로 열기"를 선택해 크롬으로 연 다음, 크롬에서 다시 홈 화면에 추가해주세요.',
+      confirmText: '확인',
+      hideCancel: true
+    });
     return;
   }
 });
