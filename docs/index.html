@@ -222,13 +222,14 @@
   .page-title{display:flex; align-items:center; gap:10px; margin:4px 0 18px; flex-shrink:0;}
   .page-title-name{font-size:20px; color:var(--text); font-weight:800; letter-spacing:-.5px; line-height:1.25;}
   .page-title-sub{font-size:12px; color:var(--text-dim); font-weight:400; margin-top:2px;}
-  .share-btn{
-    margin-left:auto; background:var(--field); border:none; color:var(--text-dim);
+  .title-actions{margin-left:auto; display:flex; gap:8px; flex-shrink:0;}
+  .title-btn{
+    background:var(--field); border:none; color:var(--text-dim);
     width:38px; height:38px; border-radius:12px; flex-shrink:0;
     display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
-  .share-btn svg{width:18px; height:18px;}
-  .share-btn:active{background:var(--accent-dim); color:var(--accent);}
+  .title-btn svg{width:18px; height:18px;}
+  .title-btn:active{background:var(--accent-dim); color:var(--accent);}
   .page-icon{width:32px; height:32px; border-radius:9px; box-shadow:0 4px 10px rgba(25,31,40,.18); flex-shrink:0; object-fit:cover;}
   .section-title{font-size:14px; color:var(--text); font-weight:800; margin:24px 0 10px; letter-spacing:-.2px;}
   .card{background:var(--card); border:none; box-shadow:var(--shadow); border-radius:var(--radius); padding:18px; margin-bottom:10px;}
@@ -455,9 +456,14 @@
         <div class="page-title-name">나혼자 클라이밍</div>
         <div class="page-title-sub">부제: 훈수 환영, 혼클러 지도</div>
       </div>
-      <button class="share-btn" id="share-btn" title="공유하기">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7l7.4-4.4M8.3 13.3l7.4 4.4"/></svg>
-      </button>
+      <div class="title-actions">
+        <button class="title-btn" id="install-btn" title="홈 화면에 추가" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>
+        </button>
+        <button class="title-btn" id="share-btn" title="공유하기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7l7.4-4.4M8.3 13.3l7.4 4.4"/></svg>
+        </button>
+      </div>
     </div>
     <div id="profile-scroll">
       <div class="card profile-head">
@@ -1629,6 +1635,26 @@ function showConfirm({ title, message, confirmText = '확인', cancelText = '취
     showOverlay('confirm-overlay');
   });
 }
+
+/* 홈 화면에 추가 (PWA 설치) - 지원 브라우저(주로 안드로이드 크롬)에서만 버튼이 나타남 */
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById('install-btn');
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  installBtn.style.display = '';
+});
+installBtn.addEventListener('click', async ()=>{
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  installBtn.style.display = 'none';
+});
+window.addEventListener('appinstalled', ()=>{
+  installBtn.style.display = 'none';
+  deferredInstallPrompt = null;
+});
 
 document.getElementById('share-btn').addEventListener('click', ()=>showOverlay('share-overlay'));
 document.getElementById('share-close').addEventListener('click', ()=>hideOverlay('share-overlay'));
