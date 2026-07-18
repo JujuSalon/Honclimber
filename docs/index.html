@@ -1258,14 +1258,24 @@ function loadNearbyGyms(){
 function searchGyms(query){
   const places = new kakao.maps.services.Places();
   const center = myLatLng || map.getCenter();
-  places.keywordSearch(query, (results, status)=>{
-    const box = document.getElementById('gym-search-results');
-    if(status !== kakao.maps.services.Status.OK || results.length === 0){
+  const box = document.getElementById('gym-search-results');
+
+  const runSearch = (q, isRetry)=>{
+    places.keywordSearch(q, (results, status)=>{
+      if(status === kakao.maps.services.Status.OK && results.length > 0){
+        renderGymResults(results, box, null);
+        return;
+      }
+      // 카카오맵 검색이 띄어쓰기에 민감해서 결과가 없으면 공백 제거 후 한 번 더 시도
+      const stripped = q.replace(/\s+/g, '');
+      if(!isRetry && stripped !== q){
+        runSearch(stripped, true);
+        return;
+      }
       box.innerHTML = `<div class="empty-note">검색 결과가 없어요</div>`;
-      return;
-    }
-    renderGymResults(results, box, null);
-  }, { location: center, sort: kakao.maps.services.SortBy.DISTANCE });
+    }, { location: center, sort: kakao.maps.services.SortBy.DISTANCE });
+  };
+  runSearch(query, false);
 }
 
 function renderGymResults(results, box, headerText){
