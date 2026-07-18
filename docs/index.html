@@ -530,28 +530,30 @@
   <div class="sheet">
     <button class="close-x" id="checkin-close">✕</button>
     <div class="sheet-title" id="checkin-sheet-title">체크인하기</div>
-    <div class="card" style="margin-bottom:14px;">
-      <b id="checkin-gym-name" style="font-size:15px;"></b>
-      <div style="font-size:12px; color:var(--text-dim); margin-top:3px;" id="checkin-gym-addr"></div>
-    </div>
-    <div class="toggle-row">
-      <div class="label"><b>훈수 환영</b><span>켜두면 다른 혼클러들이 알아보고 말을 걸 수 있어요</span></div>
-      <div class="switch on" id="opentalk-switch"></div>
-    </div>
-    <div class="field">
-      <label>한마디 (선택)</label>
-      <textarea id="checkin-msg" maxlength="40" placeholder="예: 회색 후드에 안경 썼어요, 편하게 말 걸어주세요!"></textarea>
-      <div class="field-hint">💡 실제로 알아보고 말 걸 수 있게 인상착의를 적어두면 좋아요</div>
-    </div>
-    <div class="field" id="dur-field">
-      <label>체크인 유지 시간</label>
-      <div class="dur-stepper">
-        <button type="button" class="dur-btn" id="dur-minus">−</button>
-        <div class="dur-value" id="dur-value-text">4시간</div>
-        <button type="button" class="dur-btn" id="dur-plus">+</button>
+    <div class="sheet-body">
+      <div class="card" style="margin-bottom:14px;">
+        <b id="checkin-gym-name" style="font-size:15px;"></b>
+        <div style="font-size:12px; color:var(--text-dim); margin-top:3px;" id="checkin-gym-addr"></div>
       </div>
+      <div class="toggle-row">
+        <div class="label"><b>훈수 환영</b><span>켜두면 다른 혼클러들이 알아보고 말을 걸 수 있어요</span></div>
+        <div class="switch on" id="opentalk-switch"></div>
+      </div>
+      <div class="field">
+        <label>한마디 (선택)</label>
+        <textarea id="checkin-msg" maxlength="40" placeholder="예: 회색 후드에 안경 썼어요, 편하게 말 걸어주세요!"></textarea>
+        <div class="field-hint">💡 실제로 알아보고 말 걸 수 있게 인상착의를 적어두면 좋아요</div>
+      </div>
+      <div class="field" id="dur-field">
+        <label>체크인 유지 시간</label>
+        <div class="dur-stepper">
+          <button type="button" class="dur-btn" id="dur-minus">−</button>
+          <div class="dur-value" id="dur-value-text">4시간</div>
+          <button type="button" class="dur-btn" id="dur-plus">+</button>
+        </div>
+      </div>
+      <button class="btn-primary" id="checkin-submit">체크인</button>
     </div>
-    <button class="btn-primary" id="checkin-submit">체크인</button>
   </div>
 </div>
 
