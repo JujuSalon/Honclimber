@@ -378,17 +378,10 @@
   .modal-btn.confirm{background:var(--accent); color:#fff;}
   .modal-btn.confirm.danger{background:var(--danger); color:#fff;}
 
-  /* ---------- 데스크톱(PC) 대응: 바텀시트를 우측 패널로 ---------- */
+  /* ---------- 데스크톱(PC) 대응: 바텀시트는 그대로 하단에서 올라오되 폭만 좁게 ---------- */
   @media (min-width: 860px){
-    .sheet-overlay{ align-items:stretch; justify-content:flex-end; }
-    .sheet{
-      width:420px; max-width:90vw; height:100%; max-height:100%;
-      border-radius:20px 0 0 20px;
-      animation:slideInRight .22s ease-out;
-    }
-    .sheet-capped{max-height:100%;}
-    @keyframes slideInRight{from{transform:translateX(100%)} to{transform:translateX(0)}}
-    .sheet-handle{display:none;}
+    .sheet-overlay{ justify-content:center; }
+    .sheet{ width:640px; max-width:90vw; }
 
     #map-tab{inset:0 76px 0 0;}
     #profile-tab{inset:0 76px 0 0;}
