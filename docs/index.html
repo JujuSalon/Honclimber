@@ -393,7 +393,7 @@
     .nav-btn{flex:none; height:76px;}
 
     /* 온보딩/프로필은 넓은 화면에서 가로로 쫙 늘어나지 않도록 폭 제한 */
-    #onboarding{ max-width:600px; margin:0 auto; }
+    .ob-inner{ max-width:600px; margin:0 auto; }
     .page-title, #profile-scroll{ max-width:640px; margin-left:auto; margin-right:auto; }
   }
 </style>
@@ -488,21 +488,23 @@
 
 <!-- Onboarding -->
 <div id="onboarding" class="hidden">
-  <div class="ob-logo">
-    <img src="assets/app-icon.png" alt="">
+  <div class="ob-inner">
+    <div class="ob-logo">
+      <img src="assets/app-icon.png" alt="">
+    </div>
+    <h1 class="ob-title">나혼자 클라이밍</h1>
+    <p class="ob-sub">혼자 클라이밍하다가 누군가 말 걸어주면 좋을 때, 체크인하고 <span class="ob-sub-accent">훈수 환영</span>을 켜보세요.</p>
+    <div class="field">
+      <label>닉네임</label>
+      <input id="ob-nickname" maxlength="12" placeholder="예: 볼더링초보" />
+      <div class="field-hint">다른 사람과 닉네임이 겹칠 수 있어요</div>
+    </div>
+    <div class="field">
+      <label>클라이밍 레벨 (선택)</label>
+      <input id="ob-grade" maxlength="15" placeholder="예: V3~V4" />
+    </div>
+    <button class="btn-primary" id="ob-submit" disabled>시작하기</button>
   </div>
-  <h1 class="ob-title">나혼자 클라이밍</h1>
-  <p class="ob-sub">혼자 클라이밍하다가 누군가 말 걸어주면 좋을 때, 체크인하고 <span class="ob-sub-accent">훈수 환영</span>을 켜보세요.</p>
-  <div class="field">
-    <label>닉네임</label>
-    <input id="ob-nickname" maxlength="12" placeholder="예: 볼더링초보" />
-    <div class="field-hint">다른 사람과 닉네임이 겹칠 수 있어요</div>
-  </div>
-  <div class="field">
-    <label>클라이밍 레벨 (선택)</label>
-    <input id="ob-grade" maxlength="15" placeholder="예: V3~V4" />
-  </div>
-  <button class="btn-primary" id="ob-submit" disabled>시작하기</button>
 </div>
 
 <!-- 전체 현황 sheet -->
