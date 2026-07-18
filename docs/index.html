@@ -139,6 +139,14 @@
     padding:15px; font-size:15px; font-weight:700; cursor:pointer;
   }
   .btn-ghost{background:none; border:none; color:var(--text-dim); font-size:14px; cursor:pointer;}
+  .edit-profile-actions{display:flex; gap:8px; margin-top:8px;}
+  .edit-profile-actions .btn-primary{margin-top:0; flex:1;}
+  .btn-account-reset{
+    background:var(--danger-dim); color:var(--danger); border:none; border-radius:16px;
+    padding:16px 14px; font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap;
+    transition:transform .12s;
+  }
+  .btn-account-reset:active{transform:scale(.98);}
 
   /* ---------- Map tab ---------- */
   #map-tab{position:absolute; inset:0 0 60px 0; display:none;}
@@ -247,7 +255,7 @@
   }
   .menu-row-right{display:flex; align-items:center; gap:4px; color:var(--text-faint); font-size:13px; font-weight:600;}
   .menu-row-right svg{width:16px; height:16px;}
-  .app-footer{text-align:center; font-size:11px; color:var(--text-faint); margin:22px 0 8px; -webkit-user-select:none; user-select:none;}
+  .app-footer{text-align:center; font-size:11px; color:var(--text-faint); margin:22px 0 8px;}
 
   .checkin-card b{font-size:15px; font-weight:700;}
   .checkin-card .meta{font-size:12px; color:var(--text-dim); margin-top:4px;}
@@ -633,7 +641,10 @@
       <label>클라이밍 레벨</label>
       <input id="edit-grade" maxlength="15" />
     </div>
-    <button class="btn-primary" id="edit-profile-submit">저장</button>
+    <div class="edit-profile-actions">
+      <button class="btn-account-reset" id="account-reset-btn">계정 초기화</button>
+      <button class="btn-primary" id="edit-profile-submit">저장</button>
+    </div>
   </div>
 </div>
 
@@ -1219,9 +1230,9 @@ function renderHiddenList(items){
 document.getElementById('hidden-users-btn').addEventListener('click', ()=>showOverlay('hidden-users-overlay'));
 document.getElementById('hidden-users-close').addEventListener('click', ()=>hideOverlay('hidden-users-overlay'));
 
-async function handleResetTrigger(){
+document.getElementById('account-reset-btn').addEventListener('click', async ()=>{
   const ok = await showConfirm({
-    title: '초기화',
+    title: '계정 초기화',
     message: '프로필과 체크인 정보가 모두 초기화되고 처음 화면부터 다시 시작해요. 계속할까요?',
     confirmText: '초기화',
     cancelText: '취소',
@@ -1239,19 +1250,7 @@ async function handleResetTrigger(){
     console.error(err);
     toast('초기화하지 못했어요: ' + err.message);
   }
-}
-(function(){
-  const footer = document.getElementById('app-footer');
-  let pressTimer = null;
-  const startPress = ()=>{ pressTimer = setTimeout(handleResetTrigger, 900); };
-  const cancelPress = ()=>{ if(pressTimer){ clearTimeout(pressTimer); pressTimer = null; } };
-  footer.addEventListener('pointerdown', startPress);
-  footer.addEventListener('pointerup', cancelPress);
-  footer.addEventListener('pointerleave', cancelPress);
-  footer.addEventListener('pointercancel', cancelPress);
-  footer.addEventListener('pointermove', cancelPress);
-  footer.addEventListener('contextmenu', e=>e.preventDefault());
-})();
+});
 
 document.getElementById('hidden-list-card').addEventListener('click', (e)=>{
   const btn = e.target.closest('.hide-unhide-btn');
