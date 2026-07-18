@@ -457,9 +457,6 @@
         <div class="page-title-sub">부제: 훈수 환영, 혼클러 지도</div>
       </div>
       <div class="title-actions">
-        <button class="title-btn" id="install-btn" title="홈 화면에 추가" style="display:none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>
-        </button>
         <button class="title-btn" id="share-btn" title="공유하기">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7l7.4-4.4M8.3 13.3l7.4 4.4"/></svg>
         </button>
@@ -485,6 +482,12 @@
       </div>
 
       <div class="section-title">설정</div>
+      <button class="card menu-row" id="install-btn" style="display:none;">
+        <span>홈 화면에 추가</span>
+        <span class="menu-row-right">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
       <button class="card menu-row" id="hidden-users-btn">
         <span>숨긴 사용자 관리</span>
         <span class="menu-row-right">
@@ -1636,24 +1639,52 @@ function showConfirm({ title, message, confirmText = '확인', cancelText = '취
   });
 }
 
-/* 홈 화면에 추가 (PWA 설치) - 지원 브라우저(주로 안드로이드 크롬)에서만 버튼이 나타남 */
+/* 홈 화면에 추가 (PWA 설치) */
 let deferredInstallPrompt = null;
 const installBtn = document.getElementById('install-btn');
+const installUA = navigator.userAgent;
+const isIOSDevice = /iPad|iPhone|iPod/.test(installUA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isKakaoInApp = /KAKAOTALK/i.test(installUA);
+const isNaverInApp = /NAVER\(inapp/i.test(installUA);
+function isStandaloneMode(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function updateInstallBtnVisibility(){
+  installBtn.style.display = (!isStandaloneMode() && (isIOSDevice || isKakaoInApp || isNaverInApp || deferredInstallPrompt)) ? '' : 'none';
+}
+updateInstallBtnVisibility();
+
 window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault();
   deferredInstallPrompt = e;
-  installBtn.style.display = '';
+  updateInstallBtnVisibility();
 });
 installBtn.addEventListener('click', async ()=>{
-  if(!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-  installBtn.style.display = 'none';
+  if(isIOSDevice){
+    showConfirm({
+      title: '홈 화면에 추가',
+      message: '아이폰에서는 자동 설치를 지원하지 않아요. 브라우저의 공유 버튼(□↑ 아이콘)을 누른 뒤 "홈 화면에 추가"를 선택해주세요.',
+      confirmText: '확인',
+      hideCancel: true
+    });
+    return;
+  }
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    updateInstallBtnVisibility();
+    return;
+  }
+  if(isKakaoInApp || isNaverInApp){
+    const bareUrl = location.href.replace(/^https?:\/\//, '');
+    location.href = 'intent://' + bareUrl + '#Intent;scheme=https;package=com.android.chrome;end';
+    return;
+  }
 });
 window.addEventListener('appinstalled', ()=>{
-  installBtn.style.display = 'none';
   deferredInstallPrompt = null;
+  updateInstallBtnVisibility();
 });
 
 document.getElementById('share-btn').addEventListener('click', ()=>showOverlay('share-overlay'));
